@@ -22,7 +22,7 @@ import psycopg2
 import pandas as pd
 
 # flask v1.1.2
-from flask import Flask, request, send_from_directory, render_template, redirect, send_file, session, jsonify
+from flask import Flask, request, send_from_directory, render_template, redirect, send_file, session, jsonify, url_for
 
 # sqlalchemy v1.4.15
 from sqlalchemy import create_engine
@@ -50,7 +50,7 @@ assert GPT_MODEL is not None, "GPT_MODEL not defined in the environment variable
 
 @app.route('/', methods=['GET','POST'])
 def test():
-    return "Oh yes"
+    return redirect(url_for('app.chat'))
 
 @app.route("/chat", methods=['GET','POST'])
 def chat():
