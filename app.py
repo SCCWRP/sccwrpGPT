@@ -72,6 +72,8 @@ def before_request():
         port=os.getenv("DB_PORT")
     )
     
+    g.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    
 
 @app.teardown_request
 def teardown_request(exception):
@@ -84,10 +86,13 @@ def teardown_request(exception):
 
 @app.route("/", methods=['GET','POST'])
 def chat():
+    
     return render_template('search.jinja2')
 
 @app.route('/submit', methods=['POST'])
 def submit():
+    
+    client = g.client
     
     # A simple check for debugging, making it easier to resolve potenntial issues
     assert str(os.environ.get("DB_PORT", "")).isdigit(), "DB_PORT environment variable must be an integer value"
@@ -102,13 +107,6 @@ def submit():
     print("Here is the question:" + question)
 
 
-    
-    api_key = os.getenv("OPENAI_API_KEY")
-    
-    client = OpenAI(
-        # This is the default and can be omitted <---- this was Paul (and/or ChatGPT)'s comment, i am not sure what it means
-        api_key=api_key
-    )
     
     database_schema_string = "\n".join(
             [
@@ -147,6 +145,10 @@ def submit():
     
     chat_response = client.chat.completions.create(model=g.gpt_model, messages=messages, tools=tools, tool_choice="auto")
     
+    print("chat_response")
+    print(chat_response)
+    print("END")
+    
     tmp_message = str(chat_response.choices[0].message.model_dump_json())
     
     assistant_message = json.loads(tmp_message)
@@ -168,12 +170,5 @@ def submit():
     ][0]
     
     qryresult = [m.get('content') for m in messages if m.get('role') == 'tool'][0]
-   
-    
-    print("sql")
-    print(sql)
-    
-    print("qryresult")
-    print(qryresult)
     
     return jsonify({'message': f'SQL: {sql}\nResult:{qryresult}'.format(messages)})
