@@ -2,7 +2,7 @@ $(document).ready(function(){
     $('#submit').click(function(){
         var question = $('#question').val();
         $.ajax({
-            url: '/submit', // The endpoint on your Flask server
+            url: '/ai-search-tool/submit', // The endpoint on your Flask server
             type: 'POST',
             contentType: 'application/json;charset=UTF-8',
             data: JSON.stringify({'question': question}),
