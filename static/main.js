@@ -24,7 +24,8 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('sql-container').style.display = 'block';
         }
         if (response.records) {
-            document.getElementById('records-box').innerText = JSON.stringify(response.records, null, 2);
+            var tableHTML = createTableFromJSON(response.records);
+            document.getElementById('records-box').innerHTML = tableHTML;
             document.getElementById('records-container').style.display = 'block';
         }
         if (response.message) {
@@ -36,6 +37,35 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('error-container').style.display = 'block';
         }
     }
+
+    function createTableFromJSON(jsonData) {
+
+        const data = JSON.parse(jsonData)
+
+        if (data.length === 0) {
+            return '<p>No records found.</p>';
+        }
+
+        let table = '<table class="table table-bordered"><thead><tr>';
+        // Add headers
+        Object.keys(data[0]).forEach(key => {
+            table += `<th>${key}</th>`;
+        });
+        table += '</tr></thead><tbody>';
+
+        // Add rows
+        data.forEach(record => {
+            table += '<tr>';
+            Object.values(record).forEach(value => {
+                table += `<td>${value}</td>`;
+            });
+            table += '</tr>';
+        });
+
+        table += '</tbody></table>';
+        return table;
+    }
+
 
     document.getElementById('dataForm').addEventListener('submit', function(e) {
         e.preventDefault();

@@ -56,16 +56,7 @@ def before_request():
     
     # A simple check for debugging, making it easier to resolve potenntial issues
     assert str(os.environ.get("DB_PORT", "")).isdigit(), "DB_PORT environment variable must be an integer value"
-     
-    # Keep the psycopg2 connection alive
-    # g.dbconn = psycopg2.connect(
-    #     database=os.getenv("DB_NAME"), 
-    #     user=os.getenv("DB_USER"), 
-    #     password=os.getenv("DB_PASSWORD"), 
-    #     host=os.getenv("DB_HOST"), 
-    #     port=os.getenv("DB_PORT")
-    # )
-    
+
     # use sqlalchemy eng only for the schema info
     g.eng = create_engine(
         f"postgresql://{os.environ.get('DB_USER','')}:{os.environ.get('DB_PASSWORD','')}@{os.environ.get('DB_HOST','')}:{os.environ.get('DB_PORT','')}/{os.environ.get('DB_NAME','')}"
@@ -144,23 +135,6 @@ def teardown_request(exception):
     if hasattr(g, 'eng'):
         g.eng.dispose()
         
-    # if hasattr(g, 'client'):
-        
-    #     # Remove session thread
-    #     if session.get('THREAD_ID') is not None:
-    #         try:
-    #             g.client.beta.threads.delete(session.get('THREAD_ID'))
-    #         except NotFoundError:
-    #             print(f"Thread {session.get('THREAD_ID')} not found")
-    #         session.pop('THREAD_ID', None)
-        
-    #     # Remove session assistant
-    #     if session.get('ASSISTANT_ID') is not None:
-    #         try:
-    #             g.client.beta.assistants.delete(session.get('ASSISTANT_ID'))
-    #         except NotFoundError:
-    #             print(f"Assistant {session.get('ASSISTANT_ID')} not found")
-    #         session.pop('ASSISTANT_ID', None)
 
         
 
@@ -190,10 +164,7 @@ def submit():
         try:
             # Run the query
             qryresult = pd.read_sql(sql.replace('%', '%%'), g.eng)
-            
-            print('qryresult')
-            print(qryresult)
-        
+
             # Convert to dict and then to JSON using the custom encoder
             qryresult_json = json.dumps(qryresult.to_dict('records'), cls=CustomJSONEncoder)
         
