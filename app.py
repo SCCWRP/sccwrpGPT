@@ -28,13 +28,14 @@ from flask import Flask, request, send_from_directory, render_template, redirect
 from sqlalchemy import create_engine
 
 # openai v1.9.0
-from openai import OpenAI
+from openai import OpenAI, NotFoundError
 
 # requests v2.25.1
 import requests
 
 # ----------------- Custom Imports ----------------- #
 from utils.db import get_db_info, execute_function_call
+from utils.api import get_query
 
 
 
@@ -42,8 +43,7 @@ from utils.db import get_db_info, execute_function_call
 # -------------------------------- Main App -------------------------------- #
 
 app = Flask(__name__)
-
-
+app.secret_key = os.getenv("FLASK_APP_SECRET_KEY")
 
 
 # ----- Globals ----- #
@@ -53,26 +53,85 @@ app = Flask(__name__)
 @app.before_request
 def before_request():
     
-    g.gpt_model = os.getenv("GPT_MODEL")
-    assert g.gpt_model is not None, "GPT_MODEL not defined in the environment variables"
-        
+    # A simple check for debugging, making it easier to resolve potenntial issues
+    assert str(os.environ.get("DB_PORT", "")).isdigit(), "DB_PORT environment variable must be an integer value"
+     
+    # Keep the psycopg2 connection alive
+    # g.dbconn = psycopg2.connect(
+    #     database=os.getenv("DB_NAME"), 
+    #     user=os.getenv("DB_USER"), 
+    #     password=os.getenv("DB_PASSWORD"), 
+    #     host=os.getenv("DB_HOST"), 
+    #     port=os.getenv("DB_PORT")
+    # )
+    
     # use sqlalchemy eng only for the schema info
-    eng = create_engine(
+    g.eng = create_engine(
         f"postgresql://{os.environ.get('DB_USER','')}:{os.environ.get('DB_PASSWORD','')}@{os.environ.get('DB_HOST','')}:{os.environ.get('DB_PORT','')}/{os.environ.get('DB_NAME','')}"
     )
-    g.db_schema_info = get_db_info(eng)
-    eng.dispose()
- 
-    # Keep the psycopg2 connection alive
-    g.dbconn = psycopg2.connect(
-        database=os.getenv("DB_NAME"), 
-        user=os.getenv("DB_USER"), 
-        password=os.getenv("DB_PASSWORD"), 
-        host=os.getenv("DB_HOST"), 
-        port=os.getenv("DB_PORT")
-    )
     
-    g.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    # Set up the interaction with the chat GPT Assistants API
+    g.gpt_model = os.getenv("GPT_MODEL")
+    assert g.gpt_model is not None, "GPT_MODEL not defined in the environment variables"
+    
+    api_key = os.getenv("OPENAI_API_KEY")
+    assert api_key is not None, "OPENAI_API_KEY not defined in the environment variables"
+    
+    g.client = OpenAI(api_key=api_key)
+
+    
+    
+    if session.get('ASSISTANT_ID') is None:
+        
+        
+        db_schema_info = get_db_info(g.eng)
+        
+        database_schema_string = "\n".join(
+            [
+                f"Table: {table['table_name']}\nColumns: {', '.join(table['column_names'])}"
+                for table in db_schema_info
+            ]
+        )
+    
+        # The tool / function that generates the SQL Query
+        tools = [
+            {
+                "type": "function",
+                "function": {
+                    "name": "ask_database",
+                    "description": "Use this function to answer user questions about chemistry, fish, infauna, and invertebrates in the Southern California Bight. Input should be a fully formed SQL query.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "query": {
+                                "type": "string",
+                                "description": f"""
+                                        SQL query extracting info to answer the user's question.
+                                        SQL should be written using this database schema:
+                                        {database_schema_string}
+                                        The query should be returned in plain text, not in JSON.
+                                        """,
+                            }
+                        },
+                        "required": ["query"],
+                    },
+                }
+            }
+        ]
+        assistant = g.client.beta.assistants.create(
+            name="Data search",
+            description="You are to receive database table and column information and generate SQL queries to retrieve data that the user asks for",
+            instructions="Answer user questions by generating SQL queries against the Unified Database. You should also consider whether the tool output would give the user the data they want. They may send you further messages to refine the query.",
+            model=g.gpt_model,
+            tools=tools
+        )
+        session['ASSISTANT_ID'] = assistant.id
+        
+
+    if session.get('THREAD_ID') is None:
+        thread = g.client.beta.threads.create()
+        session['THREAD_ID'] = thread.id
+    
     
 
 @app.teardown_request
@@ -80,95 +139,78 @@ def teardown_request(exception):
     
     if hasattr(g, 'dbconn'):
         g.dbconn.close()
+        
+    if hasattr(g, 'eng'):
+        g.eng.dispose()
+        
+    # if hasattr(g, 'client'):
+        
+    #     # Remove session thread
+    #     if session.get('THREAD_ID') is not None:
+    #         try:
+    #             g.client.beta.threads.delete(session.get('THREAD_ID'))
+    #         except NotFoundError:
+    #             print(f"Thread {session.get('THREAD_ID')} not found")
+    #         session.pop('THREAD_ID', None)
+        
+    #     # Remove session assistant
+    #     if session.get('ASSISTANT_ID') is not None:
+    #         try:
+    #             g.client.beta.assistants.delete(session.get('ASSISTANT_ID'))
+    #         except NotFoundError:
+    #             print(f"Assistant {session.get('ASSISTANT_ID')} not found")
+    #         session.pop('ASSISTANT_ID', None)
 
+        
 
 #  ---------------- Routes ---------------- #
 
 @app.route("/", methods=['GET','POST'])
 def chat():
-    
     return render_template('search.jinja2')
 
 @app.route('/submit', methods=['POST'])
 def submit():
     
+    # get info for the interaction with the chat gpt assistants api
     client = g.client
+    THREAD_ID = session.get('THREAD_ID')
+    ASSISTANT_ID = session.get('ASSISTANT_ID')
     
-    # A simple check for debugging, making it easier to resolve potenntial issues
-    assert str(os.environ.get("DB_PORT", "")).isdigit(), "DB_PORT environment variable must be an integer value"
-    
+    # Get the user's question
     data = request.json
+    QUESTION = data["question"]
     
-    print('data')
-    print(request.json)
+    sql = get_query(client=client, assistant_id=ASSISTANT_ID, thread_id=THREAD_ID, user_prompt=QUESTION)
     
-    
-    question = data["question"]
-    print("Here is the question:" + question)
-
-
-    
-    database_schema_string = "\n".join(
-            [
-                f"Table: {table['table_name']}\nColumns: {', '.join(table['column_names'])}"
-                for table in g.db_schema_info
-            ]
-    )
-    tools = [
-        {
-            "type": "function",
-            "function": {
-                "name": "ask_database",
-                "description": "Use this function to answer user questions about chemistry, fish, infauna, and invertebrates in the Southern California Bight. Input should be a fully formed SQL query.",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "query": {
-                            "type": "string",
-                            "description": f"""
-                                    SQL query extracting info to answer the user's question.
-                                    SQL should be written using this database schema:
-                                    {database_schema_string}
-                                    The query should be returned in plain text, not in JSON.
-                                    """,
-                        }
-                    },
-                    "required": ["query"],
-                },
-            }
-        }
-    ]
-    
-    messages = []
-    messages.append({"role": "system", "content": "Answer user questions by generating SQL queries against the Unified Database."})
-    messages.append({"role": "user", "content": question})
-    
-    chat_response = client.chat.completions.create(model=g.gpt_model, messages=messages, tools=tools, tool_choice="auto")
-    
-    print("chat_response")
-    print(chat_response)
-    print("END")
-    
-    tmp_message = str(chat_response.choices[0].message.model_dump_json())
-    
-    assistant_message = json.loads(tmp_message)
-    assistant_message['content'] = assistant_message["tool_calls"][0]["function"]
-    
-    messages.append(assistant_message)
-    
-    if assistant_message.get("tool_calls"):
+    if sql != '':
+        print('sql')
+        print(sql)
         
-        results = execute_function_call(g.dbconn, assistant_message)
-        messages.append({"role": "tool", "tool_call_id": assistant_message["tool_calls"][0]['id'], "name": assistant_message["tool_calls"][0]["function"]["name"], "content": results})
+        qryresult = json.dumps(pd.read_sql(sql.replace('%','%%'), g.eng).to_dict('records'))
+        
+        print('qryresult')
+        print(qryresult)
     
-    message_string = str(messages)
+        return jsonify({'message': f'SQL: {sql}\nResult:{qryresult}'})
     
-    sql = [
-        json.loads(str(m.get('content').get('arguments'))).get('query')
-        for m in messages 
-        if m.get('role') == 'assistant'
-    ][0]
     
-    qryresult = [m.get('content') for m in messages if m.get('role') == 'tool'][0]
-    
-    return jsonify({'message': f'SQL: {sql}\nResult:{qryresult}'.format(messages)})
+    # In this case, the assistant decided not to run the function and generate SQL
+    # Get all messages from the thread once run is complete
+    messages = client.beta.threads.messages.list(thread_id=thread.id)
+
+    responselist = []
+    for msg in messages.data:
+
+        if msg.role == 'assistant':
+
+            # There should be only one response so we return on first iteration
+            for c in msg.content:
+                resp = c.text.value
+                
+                print('message output:')
+                print(resp)
+                responselist.append(resp)
+
+        
+    return jsonify({'message': ';'.join(responselist)})
