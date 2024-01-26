@@ -1,15 +1,22 @@
 import json, time
+from openai import BadRequestError
 
 def get_query(client, assistant_id, thread_id, user_prompt, timeout = 30, poll_wait_seconds = 2):
     
     # cancel existing potentially still open runs
     runs = client.beta.threads.runs.list(thread_id)
     for r in runs.data:
-        if r.status not in ("succeeded", "completed", "expired", "failed", "cancelled"):
-            client.beta.threads.runs.cancel(
-                thread_id=thread_id,
-                run_id=r.id
-            )
+        if r.status not in ("succeeded", "completed", "expired", "failed", "cancelled", "cancelling"):
+            try:
+                client.beta.threads.runs.cancel(
+                    thread_id=thread_id,
+                    run_id=r.id
+                )
+            except BadRequestError as e:
+                print(traceback.format_exc())
+                print("Error cancelling a run")
+                
+            
         
 
     # Set timed out flag to tell whether to return normally or raise an exception

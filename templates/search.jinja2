@@ -50,14 +50,26 @@
             cursor: pointer;
             margin-bottom: 5px;;
         }
+
         .modal-content {
             position: relative;
-            background-color: transparent;
-            margin: 15% auto;
+            margin: 10% auto;
             padding: 20px;
-            /* border: 1px solid #888; */
             width: 80%;
         }
+
+        .chat-history-modal-content {
+            background-color: rgb(255, 255, 255);
+            border: 1px solid #888;
+        }
+
+
+        .loading-modal-content {
+            background-color: transparent;
+            border: none;
+        }
+
+
 
         .horizontal-btn-container {
             display: flex;
@@ -177,15 +189,15 @@
 
     <!-- Modal -->
     <div id="loadingModal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content loading-modal-content">
             <img src="{{url_for('static', filename='ai-loading.gif')}}" alt="Loading"
-                style="display:block; margin:auto; height:75%;width:75%;"> <!-- Replace with your loading gif -->
+                style="display:block; margin:auto; height:60%;width:60%;"> <!-- Replace with your loading gif -->
         </div>
     </div>
     
     <!-- chat history modal -->
     <div id="chat-history-modal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content chat-history-modal-content">
             <button id="close-modal" class="close-modal-button">X</button>
             <img id="chat-history-loading-gif" src="{{url_for('static', filename='loading.gif')}}" height="200" width="200" alt="Loading"
                 style="display:none; margin:auto;"> <!-- Replace with your loading gif -->

@@ -251,7 +251,7 @@ def submit():
         print("Unexpected error")
         print(e)
         print(traceback.format_exc())
-        return jsonify({'error': e})
+        return jsonify({'error': f"{str(e)} - We are working on a fix for this. In the meantime, try clearing browsing data or using an incognito tab"})
         
 
 
@@ -275,8 +275,12 @@ def chathist():
     if session.get('CHAT_HISTORY_PATH') is None:
         return 'bad request'
     
-    with open(session.get('CHAT_HISTORY_PATH'), 'r') as chathist:
-        chatjson = json.load(chathist)
+    # initialize
+    chatjson = []
     
-    return jsonify(chatjson)
+    if os.path.exists(session.get('CHAT_HISTORY_PATH')):
+        with open(session.get('CHAT_HISTORY_PATH'), 'r') as chathist:
+            chatjson = json.load(chathist)
+    
+    return jsonify({"chathist": chatjson})
     

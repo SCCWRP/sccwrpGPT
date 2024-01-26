@@ -139,6 +139,10 @@ document.addEventListener('DOMContentLoaded', function () {
         })
         .then(response => response.json())
         .then(data => {
+            const chathist = data.chathist;
+
+            console.log("chat history:", chathist);
+
             chatHistoryLoadingGif.style.display = 'none';
             chatHistoryContent.innerHTML = ''; // Clear previous content
             chatHistoryContent.style.display = 'flex';
@@ -152,7 +156,7 @@ document.addEventListener('DOMContentLoaded', function () {
             `
             chatHistoryContent.appendChild(chatHistoryHeader);
     
-            data.forEach(d => {
+            chathist.forEach(d => {
                 const chatEntry = document.createElement('div');
                 chatEntry.classList.add('chat-history-entry');
                 chatEntry.innerHTML = `
@@ -161,7 +165,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 `;
                 chatHistoryContent.appendChild(chatEntry);
             });
-            console.log("chat history:", data);
+            
         })
         .catch((error) => {
             chatHistoryModal.style.display = 'none';
