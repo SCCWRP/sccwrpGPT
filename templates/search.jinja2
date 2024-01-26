@@ -1,34 +1,86 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>Send Data to Flask Server</title>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-    <script type="text/javascript" src="{{url_for('static',filename='main.js')}}"></script>
+    <script type="text/javascript" src="{{url_for('static', filename='main.js')}}"></script>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <style>
+        body {
+            padding: 20px;
+        }
+
+        #dataForm {
+            margin-bottom: 20px;
+        }
+
+        #response {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgb(0, 0, 0);
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+        }
+    </style>
 </head>
+
 <body>
-	Notes for development - Setup SQL queries ahead of time if possible (cache) - like tables/columns - time consuming part is querying database
+    <div id="intro">
+        <h2>SCCWRP Published Dataset Search Engine</h2>
+        <p>Ask your question of our custom GPT that queries SCCWRP's unified database (chemistry, fish, inverts, and infauna) and get SQL and hopefully records. Check SQL for discrepancies if no records are returned.</p>
+    </div>
+    <div id="example-questions">
+        <h4>Example questions:</h4>
+        <ul>
+            <li>1. Can you return stations for the survey year 2018 that have Copper?</li>
+            <li>
+                2. What sites have high concentrations of Copper and flatfish? You will need to make a database call to
+                the chemistry and fish databases.
+                Also, flatfish is not a species but rather a number of species. You will need to figure out which
+                species are flatfish.
+            </li>
+        </ul>
+    </div>
+
     <form id="dataForm">
-	    <label for="name"><h2>Ask your question of our custom GPT that queries SCCWRP's unified database (chemistry, fish, inverts, and infauan) and get SQL and hopefully records. Check SQL for discrepancies if no records are returned.</h2>
-	<h3>
-	Example questions:
-	<ul>
-		<li>1. Can you return stations for the survey year 2018 that have Copper?</li>
-		<li>
-            2. What sites have high concentrations of Copper and flatfish? You will need to make a database call to the chemistry and fish databases. 
-            Also flatfish is not a species but rather a number of species. You will need to figure out which species are flatfish.
-        </li>
-	</ul>
-	</h3>
-	</label>
-	
-        <input type="text" id="question" name="question" size="250"><br><br>
-        <!-- <label for="email">Email:</label>
-        <input type="text" id="email" name="email"><br><br>
-	// -->
-        <input type="button" value="Submit" id="submit">
+        <label for="question">
+            <h2>Ask your question:</h2>
+        </label>
+        <input type="text" id="question" name="question" class="form-control" size="250">
+        <br>
+        <input type="button" value="Submit" id="submit" class="btn btn-primary">
     </form>
 
-        <!-- Div to display the response -->
-    <div id="response">Text Area</div>
+    <br>
+
+    <div id="response">Response will be shown here</div>
+
+    <!-- Modal -->
+    <div id="loadingModal" class="modal">
+        <div class="modal-content">
+            <img src="{{url_for('static', filename='ai-loading.gif')}}" alt="Loading"
+                style="display:block; margin:auto;"> <!-- Replace with your loading gif -->
+        </div>
+    </div>
 </body>
+
 </html>

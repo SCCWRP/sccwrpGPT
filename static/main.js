@@ -1,21 +1,39 @@
-$(document).ready(function(){
-    $('#submit').click(function(){
-        var question = $('#question').val();
-        $.ajax({
-            url: '/ai-search-tool/submit', // The endpoint on your Flask server
-            type: 'POST',
-            contentType: 'application/json;charset=UTF-8',
-            data: JSON.stringify({'question': question}),
-            success: function(response){
-                console.log(response);
-                console.log("failing");
-		//$('#response').html(response.message);
-		$('#response').text(response.message || 'No message received');
+document.addEventListener('DOMContentLoaded', function() {
+
+    function showModal() {
+        document.getElementById('loadingModal').style.display = 'block';
+    }
+
+    function hideModal() {
+        document.getElementById('loadingModal').style.display = 'none';
+    }
+
+    document.getElementById('submit').addEventListener('click', function() {
+        var question = document.getElementById('question').value;
+        showModal();
+
+        fetch('/ai-search-tool/submit', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
             },
-            error: function(error){
-                console.log(error);
-		$('#response').html('Error: ' + error);
-            }
+            body: JSON.stringify({ question: question }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            hideModal();
+            document.getElementById('response').innerText = data.message;
+        })
+        .catch((error) => {
+            hideModal();
+            console.error('Error:', error);
+            document.getElementById('response').innerText = 'An error occurred.';
         });
+    });
+
+    document.getElementById('question').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            document.getElementById('submit').click();
+        }
     });
 });

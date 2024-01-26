@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Send Data to Flask Server</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script type="text/javascript" src="{{url_for('static',filename='main.js')}}"></script>
+</head>
+<body>
+	Notes for development - Setup SQL queries ahead of time if possible (cache) - like tables/columns - time consuming part is querying database
+    <form id="dataForm">
+	    <label for="name"><h2>Ask your question of our custom GPT that queries SCCWRP's unified database (chemistry, fish, inverts, and infauan) and get SQL and hopefully records. Check SQL for discrepancies if no records are returned.</h2>
+	<h3>
+	Example questions:
+	<ul>
+		<li>1. Can you return stations for the survey year 2018 that have Copper?</li>
+		<li>
+            2. What sites have high concentrations of Copper and flatfish? You will need to make a database call to the chemistry and fish databases. 
+            Also flatfish is not a species but rather a number of species. You will need to figure out which species are flatfish.
+        </li>
+	</ul>
+	</h3>
+	</label>
+	
+        <input type="text" id="question" name="question" size="250"><br><br>
+        <!-- <label for="email">Email:</label>
+        <input type="text" id="email" name="email"><br><br>
+	// -->
+        <input type="button" value="Submit" id="submit">
+    </form>
+
+        <!-- Div to display the response -->
+    <div id="response">Text Area</div>
+</body>
+</html>
