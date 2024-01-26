@@ -38,13 +38,62 @@
             background-color: rgba(0, 0, 0, 0.4);
         }
 
+
+        .close-modal-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            border: none;
+            background-color: transparent;
+            font-size: 16px;
+            font-weight: bolder;
+            cursor: pointer;
+            margin-bottom: 5px;;
+        }
         .modal-content {
-            background-color: #fefefe;
+            position: relative;
+            background-color: transparent;
             margin: 15% auto;
             padding: 20px;
-            border: 1px solid #888;
+            /* border: 1px solid #888; */
             width: 80%;
         }
+
+        .horizontal-btn-container {
+            display: flex;
+            justify-content: flex-start; /* Align items to the start of the container */
+            align-items: center; /* Center items vertically */
+            gap: 10px; /* Spacing between buttons */
+        }
+
+        #chat-history-content {
+            display: flex;
+            margin: auto;
+            flex-direction: column;
+            width: 100%; /* Set a width for the table */
+        }
+
+        .chat-history-entry {
+            display: flex;
+            flex-direction: row;
+            border-bottom: 1px solid gray; /* Add a border to each row for a table-like separation */
+        }
+
+        .chat-history-cell {
+            padding: 10px;
+            flex: 1; /* Make each cell grow equally */
+        }
+
+        .chat-timestamp {
+            flex-basis: 30%; /* Allocate 30% of the width to timestamp */
+            text-align: left; /* Align timestamp text to the left */
+        }
+
+        .chat-prompt {
+            flex-basis: 70%; /* Allocate 70% of the width to prompt */
+            text-align: left; /* Align prompt text to the left */
+        }
+
     </style>
 </head>
 
@@ -72,9 +121,13 @@
             <h2>Ask your question:</h2>
         </label>
         <input type="text" id="question" name="question" class="form-control" size="250">
-        <br>
-        <input type="submit" value="Submit" id="submit" class="btn btn-primary">
     </form>
+    <br>
+    
+    <div class="horizontal-btn-container">
+        <button type="submit" id="submit-button" class="btn btn-primary">Submit</button>
+        <button class="btn btn-secondary" id="chat-history-button">Show Chat/Question History</button>
+    </div>
 
     <br>
 
@@ -126,7 +179,19 @@
     <div id="loadingModal" class="modal">
         <div class="modal-content">
             <img src="{{url_for('static', filename='ai-loading.gif')}}" alt="Loading"
-                style="display:block; margin:auto;"> <!-- Replace with your loading gif -->
+                style="display:block; margin:auto; height:75%;width:75%;"> <!-- Replace with your loading gif -->
+        </div>
+    </div>
+    
+    <!-- chat history modal -->
+    <div id="chat-history-modal" class="modal">
+        <div class="modal-content">
+            <button id="close-modal" class="close-modal-button">X</button>
+            <img id="chat-history-loading-gif" src="{{url_for('static', filename='loading.gif')}}" height="200" width="200" alt="Loading"
+                style="display:none; margin:auto;"> <!-- Replace with your loading gif -->
+            <div id="chat-history-content">
+
+            </div>
         </div>
     </div>
 </body>

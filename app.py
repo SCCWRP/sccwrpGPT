@@ -11,7 +11,7 @@
 
 
 # PSL Imports
-import os, json, uuid
+import os, json, uuid, time, traceback
 
 
 # ----------------- Installed libs ----------------- #
@@ -131,6 +131,10 @@ def before_request():
     if session.get('SESSION_DIR', None) is None:
         session['SESSION_DIR'] = os.path.join(os.getcwd(), 'files', session.get('SESSION_ID'))
         
+    if session.get('CHAT_HISTORY_PATH', None) is None:
+        session['CHAT_HISTORY_PATH'] = os.path.join(os.getcwd(), 'files', session.get('SESSION_DIR'), 'chat.json')
+        
+        
     if not os.path.exists(session.get('SESSION_DIR')):
         os.mkdir(session.get('SESSION_DIR'))
     
@@ -156,64 +160,99 @@ def chat():
 
 @app.route('/submit', methods=['POST'])
 def submit():
-    
-    # get info for the interaction with the chat gpt assistants api
-    client = g.client
-    THREAD_ID = session.get('THREAD_ID')
-    ASSISTANT_ID = session.get('ASSISTANT_ID')
-    
-    # Get the user's question
-    data = request.json
-    QUESTION = data["question"]
-    
     try:
-        sql = get_query(client=client, assistant_id=ASSISTANT_ID, thread_id=THREAD_ID, user_prompt=QUESTION)
+        # get info for the interaction with the chat gpt assistants api
+        client = g.client
+        THREAD_ID = session.get('THREAD_ID')
+        ASSISTANT_ID = session.get('ASSISTANT_ID')
+        
+        # Get the user's question
+        data = request.json
+        QUESTION = data["question"]
+        TIMESTAMP = int(time.time())
+        
+        if not os.path.exists(session.get('CHAT_HISTORY_PATH')):
+            with open(session.get('CHAT_HISTORY_PATH'), 'w') as chatfile:
+                json.dump([{"timestamp": TIMESTAMP, 'prompt': QUESTION}], chatfile)
+        else:
+            with open(session.get('CHAT_HISTORY_PATH'), 'r') as chatfile:
+                chathist = json.load(chatfile)
+                
+            chathist.append({"timestamp": TIMESTAMP, 'prompt': QUESTION})
+            
+            # Track seen values for key 'prompt'
+            # dont write duplicated prompts
+            seen = set()
+            unique_prompts = []
+
+            for item in chathist:
+                if item['prompt'] not in seen:
+                    unique_prompts.append(item)
+                    seen.add(item['prompt'])
+
+            # sort chronologically
+            unique_prompts.sort(key = lambda c: c.get('timestamp'))
+            
+            
+            with open(session.get('CHAT_HISTORY_PATH'), 'w') as chatfile:
+                json.dump(unique_prompts, chatfile)
+            
+                
+        
+        try:
+            sql = get_query(client=client, assistant_id=ASSISTANT_ID, thread_id=THREAD_ID, user_prompt=QUESTION)
+        except Exception as e:
+            print("Exception occurred in get_query")
+            print(e)
+            return jsonify({'error': e})
+            
+        if sql != '':
+            print('sql')
+            print(sql)
+            try:
+                # Run the query
+                qryresult = pd.read_sql(sql.replace('%', '%%'), g.eng)
+                
+                session['FILE_DOWNLOAD_NAME'] = f"{secure_filename(sql)}.xlsx"
+                session['EXCEL_PATH'] = os.path.join(os.getcwd(), 'files', session.get('SESSION_DIR'), session.get('FILE_DOWNLOAD_NAME'))
+                with pd.ExcelWriter(session.get('EXCEL_PATH')) as writer:
+                    qryresult.to_excel(writer, index = False)
+
+                # Convert to dict and then to JSON using the custom encoder
+                qryresult_json = json.dumps(qryresult.fillna('').to_dict('records'), cls=CustomJSONEncoder)
+            
+                return jsonify({'sql': sql, 'records': qryresult_json})
+            
+            except Exception as e:
+                print("Exception occurred:")
+                print(e)
+                return jsonify({'sql': sql, 'error': str(e)})
+
+        
+        # In this case, the assistant decided not to run the function and generate SQL
+        # Get all messages from the thread once run is complete
+        messages = client.beta.threads.messages.list(thread_id=THREAD_ID)
+
+        assistant_responses = [msg for msg in messages.data if msg.role == 'assistant']
+
+        resp = ''
+        if len(assistant_responses) > 0:
+            msg = assistant_responses[0]
+            # There should be only one response so we return on first iteration
+            for c in msg.content:
+                resp = c.text.value
+                
+                print('message output:')
+                print(resp)
+
+            
+        return jsonify({'message': resp})
     except Exception as e:
-        print("Exception occurred in get_query")
+        print("Unexpected error")
         print(e)
+        print(traceback.format_exc())
         return jsonify({'error': e})
         
-    if sql != '':
-        print('sql')
-        print(sql)
-        try:
-            # Run the query
-            qryresult = pd.read_sql(sql.replace('%', '%%'), g.eng)
-            
-            session['FILE_DOWNLOAD_NAME'] = f"{secure_filename(sql)}.xlsx"
-            session['EXCEL_PATH'] = os.path.join(os.getcwd(), 'files', session.get('SESSION_DIR'), session.get('FILE_DOWNLOAD_NAME'))
-            with pd.ExcelWriter(session.get('EXCEL_PATH')) as writer:
-                qryresult.to_excel(writer, index = False)
-
-            # Convert to dict and then to JSON using the custom encoder
-            qryresult_json = json.dumps(qryresult.fillna('').to_dict('records'), cls=CustomJSONEncoder)
-        
-            return jsonify({'sql': sql, 'records': qryresult_json})
-        
-        except Exception as e:
-            print("Exception occurred:")
-            print(e)
-            return jsonify({'sql': sql, 'error': str(e)})
-
-    
-    # In this case, the assistant decided not to run the function and generate SQL
-    # Get all messages from the thread once run is complete
-    messages = client.beta.threads.messages.list(thread_id=THREAD_ID)
-
-    assistant_responses = [msg for msg in messages.data if msg.role == 'assistant']
-
-    resp = ''
-    if len(assistant_responses) > 0:
-        msg = assistant_responses[0]
-        # There should be only one response so we return on first iteration
-        for c in msg.content:
-            resp = c.text.value
-            
-            print('message output:')
-            print(resp)
-
-        
-    return jsonify({'message': resp})
 
 
 @app.route('/download', methods=['GET','POST'])
@@ -229,4 +268,15 @@ def download():
         mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 
         download_name=session.get('FILE_DOWNLOAD_NAME')
     )
+    
+
+@app.route('/chathist', methods=['GET','POST'])
+def chathist():
+    if session.get('CHAT_HISTORY_PATH') is None:
+        return 'bad request'
+    
+    with open(session.get('CHAT_HISTORY_PATH'), 'r') as chathist:
+        chatjson = json.load(chathist)
+    
+    return jsonify(chatjson)
     

@@ -79,6 +79,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
     document.getElementById('dataForm').addEventListener('submit', function (e) {
+        console.log('Form submitted')
         e.preventDefault();
 
         var question = document.getElementById('question').value;
@@ -108,7 +109,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
 
-    document.getElementById('submit').addEventListener('click', function(e){
+    document.getElementById('submit-button').addEventListener('click', function(e){
         e.preventDefault();
         let form = document.getElementById('dataForm');
         form.dispatchEvent(new Event('submit'));
@@ -116,11 +117,71 @@ document.addEventListener('DOMContentLoaded', function () {
 
     document.getElementById('question').addEventListener('keypress', function (e) {
         if (e.key === 'Enter') {
-            document.getElementById('submit').click();
+            document.getElementById('submit-button').click();
         }
     });
 
 
+
+    document.getElementById('chat-history-button').addEventListener('click', function (e) {
+        console.log('chat history modal')
+        e.preventDefault();
+    
+        const chatHistoryModal = document.getElementById('chat-history-modal');
+        const chatHistoryLoadingGif = document.getElementById('chat-history-loading-gif');
+        const chatHistoryContent = document.getElementById('chat-history-content');
+    
+        chatHistoryModal.style.display = 'block';
+        chatHistoryLoadingGif.style.display = 'block';
+    
+        fetch('/ai-search-tool/chathist', {
+            method: 'GET'
+        })
+        .then(response => response.json())
+        .then(data => {
+            chatHistoryLoadingGif.style.display = 'none';
+            chatHistoryContent.innerHTML = ''; // Clear previous content
+            chatHistoryContent.style.display = 'flex';
+            chatHistoryContent.style.flexDirection = 'column';
+
+            const chatHistoryHeader = document.createElement('div');
+            chatHistoryHeader.classList.add('chat-history-entry');
+            chatHistoryHeader.innerHTML = `
+                <div class="chat-history-cell chat-history-cell-header chat-timestamp">Timestamp</div>
+                <div class="chat-history-cell chat-history-cell-header chat-prompt">Question/Prompt</div>
+            `
+            chatHistoryContent.appendChild(chatHistoryHeader);
+    
+            data.forEach(d => {
+                const chatEntry = document.createElement('div');
+                chatEntry.classList.add('chat-history-entry');
+                chatEntry.innerHTML = `
+                    <div class="chat-history-cell chat-timestamp">${new Date(d.timestamp * 1000).toLocaleString()}</div>
+                    <div class="chat-history-cell chat-prompt">${d.prompt}</div>
+                `;
+                chatHistoryContent.appendChild(chatEntry);
+            });
+            console.log("chat history:", data);
+        })
+        .catch((error) => {
+            chatHistoryModal.style.display = 'none';
+            console.error('Error:', error);
+            document.getElementById('error-box').innerText = 'An error occurred.';
+            document.getElementById('error-box').style.display = 'block';
+        });
+    });
+    
+    
+    // close modal listeners
+    document.getElementById('chat-history-modal').addEventListener('click', function(event) {
+        if (event.target == this) {
+            this.style.display = 'none';
+        }
+    });
+    document.getElementById('close-modal').addEventListener('click', function() {
+        document.getElementById('chat-history-modal').style.display = 'none';
+    });
+    
     
 
 });
