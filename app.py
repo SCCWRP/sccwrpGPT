@@ -197,12 +197,12 @@ def submit():
             # Convert to dict and then to JSON using the custom encoder
             qryresult_json = json.dumps(qryresult.to_dict('records'), cls=CustomJSONEncoder)
         
-            return jsonify({'message': f'SQL: {sql}\nResult:{qryresult_json}'})
+            return jsonify({'sql': sql, 'records': qryresult_json})
         
         except Exception as e:
             print("Exception occurred:")
             print(e)
-            return jsonify({'message': f'SQL: {sql}\ERROR:{str(e)}'})
+            return jsonify({'sql': sql, 'error': str(e)})
 
     
     # In this case, the assistant decided not to run the function and generate SQL

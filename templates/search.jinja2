@@ -2,7 +2,7 @@
 <html>
 
 <head>
-    <title>Send Data to Flask Server</title>
+    <title>SCCWRP Published Dataset Search Engine</title>
     <script type="text/javascript" src="{{url_for('static', filename='main.js')}}"></script>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
     <style>
@@ -14,8 +14,11 @@
             margin-bottom: 20px;
         }
 
-        #response {
-            margin-top: 20px;
+        .response-box-container {
+            margin-bottom:15px;
+        }
+        .response-box {
+            margin-top: 10px;
             padding: 10px;
             border: 1px solid #ccc;
         }
@@ -67,12 +70,26 @@
         </label>
         <input type="text" id="question" name="question" class="form-control" size="250">
         <br>
-        <input type="button" value="Submit" id="submit" class="btn btn-primary">
+        <input type="submit" value="Submit" id="submit" class="btn btn-primary">
     </form>
 
     <br>
 
-    <div id="response">Response will be shown here</div>
+    <div style="display:none;" class="response-box-container" id="sql-container">
+        SQL:
+        <div class="response-box" id="sql-box"></div>
+    </div>
+    <div style="display:none;" class="response-box-container" id="records-container">
+        Records:
+        <div class="response-box" id="records-box"></div>
+    </div>
+    <div style="display:none;" class="response-box-container" id="message-container">
+        <div class="response-box" id="message-box"></div>
+    </div>
+    <div style="display:none;" class="response-box-container" id="error-container">
+        Error:
+        <div class="response-box" id="error-box"></div>
+    </div>
 
     <!-- Modal -->
     <div id="loadingModal" class="modal">
