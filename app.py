@@ -11,7 +11,7 @@
 
 
 # PSL Imports
-import os, json 
+import os, json, uuid
 
 
 # ----------------- Installed libs ----------------- #
@@ -23,6 +23,7 @@ import pandas as pd
 
 # flask v1.1.2
 from flask import Flask, request, send_from_directory, render_template, redirect, send_file, session, jsonify, url_for, g
+from werkzeug.utils import secure_filename
 
 # sqlalchemy v1.4.15
 from sqlalchemy import create_engine
@@ -123,6 +124,15 @@ def before_request():
     if session.get('THREAD_ID') is None:
         thread = g.client.beta.threads.create()
         session['THREAD_ID'] = thread.id
+        
+    if session.get('SESSION_ID', None) is None:
+        session['SESSION_ID'] = str(uuid.uuid4())
+        
+    if session.get('SESSION_DIR', None) is None:
+        session['SESSION_DIR'] = os.path.join(os.getcwd(), 'files', session.get('SESSION_ID'))
+        
+    if not os.path.exists(session.get('SESSION_DIR')):
+        os.mkdir(session.get('SESSION_DIR'))
     
     
 
@@ -156,17 +166,27 @@ def submit():
     data = request.json
     QUESTION = data["question"]
     
-    sql = get_query(client=client, assistant_id=ASSISTANT_ID, thread_id=THREAD_ID, user_prompt=QUESTION)
-    
+    try:
+        sql = get_query(client=client, assistant_id=ASSISTANT_ID, thread_id=THREAD_ID, user_prompt=QUESTION)
+    except Exception as e:
+        print("Exception occurred in get_query")
+        print(e)
+        return jsonify({'error': e})
+        
     if sql != '':
         print('sql')
         print(sql)
         try:
             # Run the query
             qryresult = pd.read_sql(sql.replace('%', '%%'), g.eng)
+            
+            session['FILE_DOWNLOAD_NAME'] = f"{secure_filename(sql)}.xlsx"
+            session['EXCEL_PATH'] = os.path.join(os.getcwd(), 'files', session.get('SESSION_DIR'), session.get('FILE_DOWNLOAD_NAME'))
+            with pd.ExcelWriter(session.get('EXCEL_PATH')) as writer:
+                qryresult.to_excel(writer, index = False)
 
             # Convert to dict and then to JSON using the custom encoder
-            qryresult_json = json.dumps(qryresult.to_dict('records'), cls=CustomJSONEncoder)
+            qryresult_json = json.dumps(qryresult.fillna('').to_dict('records'), cls=CustomJSONEncoder)
         
             return jsonify({'sql': sql, 'records': qryresult_json})
         
@@ -194,3 +214,19 @@ def submit():
 
         
     return jsonify({'message': resp})
+
+
+@app.route('/download', methods=['GET','POST'])
+def download():
+    if session.get('EXCEL_PATH') is None:
+        return 'bad request'
+    if session.get('FILE_DOWNLOAD_NAME') is None:
+        return 'bad request'
+    
+    return send_file(
+        session.get('EXCEL_PATH'), 
+        as_attachment=True, 
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 
+        download_name=session.get('FILE_DOWNLOAD_NAME')
+    )
+    

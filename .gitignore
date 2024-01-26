@@ -1,4 +1,5 @@
 testing/
+files/
 __pycache__/
 .DS_Store
 docker/deploy.sh

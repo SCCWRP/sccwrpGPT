@@ -40,3 +40,6 @@ RUN pip3 install uwsgi
 # Because i thought requests was in the PSL
 RUN pip3 install requests
 
+# forgot to install openpyxl and xlsxwriter
+RUN pip3 install openpyxl xlsxwriter
+

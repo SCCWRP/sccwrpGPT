@@ -1,4 +1,6 @@
-document.addEventListener('DOMContentLoaded', function() {
+import {createTableFromJSON, addPagination} from './pages.js'
+
+document.addEventListener('DOMContentLoaded', function () {
 
     function showModal() {
         document.getElementById('loadingModal').style.display = 'block';
@@ -18,15 +20,24 @@ document.addEventListener('DOMContentLoaded', function() {
         // document.getElementById('error-box').innerText = '';
     }
 
+    // let currentPage = 1;
+    // let rowsToShow = 10; // Default rows to show
+
+
+
     function displayResponse(response) {
         if (response.sql) {
             document.getElementById('sql-box').innerText = response.sql;
             document.getElementById('sql-container').style.display = 'block';
         }
         if (response.records) {
+
             var tableHTML = createTableFromJSON(response.records);
             document.getElementById('records-box').innerHTML = tableHTML;
+            addPagination();
+
             document.getElementById('records-container').style.display = 'block';
+
         }
         if (response.message) {
             document.getElementById('message-box').innerText = response.message;
@@ -38,36 +49,36 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    function createTableFromJSON(jsonData) {
+    // function createTableFromJSON(jsonData) {
 
-        const data = JSON.parse(jsonData)
+    //     const data = JSON.parse(jsonData)
 
-        if (data.length === 0) {
-            return '<p>No records found.</p>';
-        }
+    //     if (data.length === 0) {
+    //         return '<p>No records found.</p>';
+    //     }
 
-        let table = '<table class="table table-bordered"><thead><tr>';
-        // Add headers
-        Object.keys(data[0]).forEach(key => {
-            table += `<th>${key}</th>`;
-        });
-        table += '</tr></thead><tbody>';
+    //     let table = '<table class="table table-bordered"><thead><tr>';
+    //     // Add headers
+    //     Object.keys(data[0]).forEach(key => {
+    //         table += `<th>${key}</th>`;
+    //     });
+    //     table += '</tr></thead><tbody>';
 
-        // Add rows
-        data.forEach(record => {
-            table += '<tr>';
-            Object.values(record).forEach(value => {
-                table += `<td>${value}</td>`;
-            });
-            table += '</tr>';
-        });
+    //     // Add rows
+    //     data.forEach(record => {
+    //         table += '<tr>';
+    //         Object.values(record).forEach(value => {
+    //             table += `<td>${value}</td>`;
+    //         });
+    //         table += '</tr>';
+    //     });
 
-        table += '</tbody></table>';
-        return table;
-    }
+    //     table += '</tbody></table>';
+    //     return table;
+    // }
 
 
-    document.getElementById('dataForm').addEventListener('submit', function(e) {
+    document.getElementById('dataForm').addEventListener('submit', function (e) {
         e.preventDefault();
 
         var question = document.getElementById('question').value;
@@ -81,22 +92,35 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             body: JSON.stringify({ question: question }),
         })
-        .then(response => response.json())
-        .then(data => {
-            hideModal();
-            displayResponse(data);
-        })
-        .catch((error) => {
-            hideModal();
-            console.error('Error:', error);
-            document.getElementById('error-box').innerText = 'An error occurred.';
-            document.getElementById('error-box').style.display = 'block';
-        });
+            .then(response => response.json())
+            .then(data => {
+                hideModal();
+                displayResponse(data);
+                console.log("response:")
+                console.log(data);
+            })
+            .catch((error) => {
+                hideModal();
+                console.error('Error:', error);
+                document.getElementById('error-box').innerText = 'An error occurred.';
+                document.getElementById('error-box').style.display = 'block';
+            });
     });
 
-    document.getElementById('question').addEventListener('keypress', function(e) {
+
+    document.getElementById('submit').addEventListener('click', function(e){
+        e.preventDefault();
+        let form = document.getElementById('dataForm');
+        form.dispatchEvent(new Event('submit'));
+    })
+
+    document.getElementById('question').addEventListener('keypress', function (e) {
         if (e.key === 'Enter') {
             document.getElementById('submit').click();
         }
     });
+
+
+    
+
 });

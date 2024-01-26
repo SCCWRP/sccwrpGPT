@@ -3,7 +3,8 @@
 
 <head>
     <title>SCCWRP Published Dataset Search Engine</title>
-    <script type="text/javascript" src="{{url_for('static', filename='main.js')}}"></script>
+    <script defer type="module" src="{{url_for('static', filename='main.js')}}"></script>
+    {# <script defer type="text/javascript" src="{{url_for('static', filename='pages.js')}}"></script> #}
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
     <style>
         body {
@@ -15,8 +16,9 @@
         }
 
         .response-box-container {
-            margin-bottom:15px;
+            margin-bottom: 15px;
         }
+
         .response-box {
             margin-top: 10px;
             padding: 10px;
@@ -49,7 +51,8 @@
 <body>
     <div id="intro">
         <h2>SCCWRP Published Dataset Search Engine</h2>
-        <p>Ask your question of our custom GPT that queries SCCWRP's unified database (chemistry, fish, inverts, and infauna) and get SQL and hopefully records. Check SQL for discrepancies if no records are returned.</p>
+        <p>Ask your question of our custom GPT that queries SCCWRP's unified database (chemistry, fish, inverts, and
+            infauna) and get SQL and hopefully records. Check SQL for discrepancies if no records are returned.</p>
     </div>
     <div id="example-questions">
         <h4>Example questions:</h4>
@@ -81,7 +84,35 @@
     </div>
     <div style="display:none;" class="response-box-container" id="records-container">
         Records:
+        <div>
+            <label for="pagination">Display rows: </label>
+            <select id="pagination">
+                <option value="5">5</option>
+                <option value="10">10</option>
+                <option value="25">25</option>
+            </select>
+        </div>
+        <div>
+            <a role="button" href="download" class="btn btn-primary" id="records-export">Export Current Records</a>
+        </div>
         <div class="response-box" id="records-box"></div>
+        <div class="d-flex justify-content-center" id="pagination-controls-container">
+            <nav>
+                <ul class="pagination" id="pagination-nav">
+                    <li class="page-item" id="prev-page">
+                        <a class="page-link" href="#" aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                    <!-- Numbers will be injected here by generatePagination() -->
+                    <li class="page-item" id="next-page">
+                        <a class="page-link" href="#" aria-label="Next">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
     </div>
     <div style="display:none;" class="response-box-container" id="message-container">
         <div class="response-box" id="message-box"></div>
