@@ -36,6 +36,7 @@ import requests
 # ----------------- Custom Imports ----------------- #
 from utils.db import get_db_info, execute_function_call
 from utils.api import get_query
+from utils.json import CustomJSONEncoder
 
 
 
@@ -186,31 +187,39 @@ def submit():
     if sql != '':
         print('sql')
         print(sql)
+        try:
+            # Run the query
+            qryresult = pd.read_sql(sql.replace('%', '%%'), g.eng)
+            
+            print('qryresult')
+            print(qryresult)
         
-        qryresult = json.dumps(pd.read_sql(sql.replace('%','%%'), g.eng).to_dict('records'))
+            # Convert to dict and then to JSON using the custom encoder
+            qryresult_json = json.dumps(qryresult.to_dict('records'), cls=CustomJSONEncoder)
         
-        print('qryresult')
-        print(qryresult)
-    
-        return jsonify({'message': f'SQL: {sql}\nResult:{qryresult}'})
-    
+            return jsonify({'message': f'SQL: {sql}\nResult:{qryresult_json}'})
+        
+        except Exception as e:
+            print("Exception occurred:")
+            print(e)
+            return jsonify({'message': f'SQL: {sql}\ERROR:{str(e)}'})
+
     
     # In this case, the assistant decided not to run the function and generate SQL
     # Get all messages from the thread once run is complete
-    messages = client.beta.threads.messages.list(thread_id=thread.id)
+    messages = client.beta.threads.messages.list(thread_id=THREAD_ID)
 
-    responselist = []
-    for msg in messages.data:
+    assistant_responses = [msg for msg in messages.data if msg.role == 'assistant']
 
-        if msg.role == 'assistant':
-
-            # There should be only one response so we return on first iteration
-            for c in msg.content:
-                resp = c.text.value
-                
-                print('message output:')
-                print(resp)
-                responselist.append(resp)
+    resp = ''
+    if len(assistant_responses) > 0:
+        msg = assistant_responses[0]
+        # There should be only one response so we return on first iteration
+        for c in msg.content:
+            resp = c.text.value
+            
+            print('message output:')
+            print(resp)
 
         
-    return jsonify({'message': ';'.join(responselist)})
+    return jsonify({'message': resp})

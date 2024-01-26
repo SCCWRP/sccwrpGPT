@@ -83,11 +83,5 @@ def get_query(client, assistant_id, thread_id, user_prompt, timeout = 30, poll_w
     if TIMED_OUT:
         raise Exception(f"Call to assistant timed out. Here is the run ID: {run.id}")
     
-    if run.status not in ("succeeded", "completed", "expired", "failed", "cancelled"):
-        client.beta.threads.runs.cancel(
-            thread_id=thread_id,
-            run_id=run.id
-        )
-    
     
     return ''
