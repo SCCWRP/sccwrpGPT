@@ -158,6 +158,7 @@ def teardown_request(exception):
 def chat():
     return render_template('search.jinja2')
 
+
 @app.route('/submit', methods=['POST'])
 def submit():
     try:

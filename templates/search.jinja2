@@ -116,6 +116,18 @@
             infauna) and get SQL and hopefully records. Check SQL for discrepancies if no records are returned.</p>
     </div>
     <div id="example-questions">
+        <h2>Directions:</h2>
+        <p><b>For the earlier models like gpt-3.5-turbo treat the GPT like a 12 year old child. You might have to provide background and explanations to get better answers. Newer models are more powerful and may not need as much interaction.</b>
+        <ol>
+         <li>Start simple by casting a wide net - Example: Can you return stations for the survey year 2018 that have Copper? Give me stationid, sampledate, latitude, longitude, strata, region, analytename, analyteclass, and result.</br></li>
+         <li>Add complexity as the GPT starts to understand what you are after - Example: Can you subset the returned dataset and eliminate records with a result < 45?</li>
+         <li>Remember this is a conversation so feel free to back track and get more information about a subject - Example: Are any of the current dataset records in the Alamitos Bay region?</li>
+         <li>Adjust the question if the GPT does not return what you are expecting - Example: Instead of the count can you just give me the records?</li>
+         </ol>
+         </p>
+    </div>
+    <!-- 
+    <div id="example-questions">
         <h4>Example questions:</h4>
         <ul>
             <li>1. Can you return stations for the survey year 2018 that have Copper?</li>
@@ -127,6 +139,7 @@
             </li>
         </ul>
     </div>
+    // -->
 
     <form id="dataForm">
         <label for="question">
