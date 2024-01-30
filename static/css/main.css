@@ -96,3 +96,7 @@ body {
     flex-basis: 70%; /* Allocate 70% of the width to prompt */
     text-align: left; /* Align prompt text to the left */
 }
+
+#model-select-container {
+    margin-bottom: 5px;
+}

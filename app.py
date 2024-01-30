@@ -46,7 +46,7 @@ from utils.json import CustomJSONEncoder
 
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_APP_SECRET_KEY")
-
+app.debug = True 
 
 # ----- Globals ----- #
 
@@ -64,14 +64,18 @@ def before_request():
     )
     
     # Set up the interaction with the chat GPT Assistants API
-    g.gpt_model = os.getenv("GPT_MODEL")
-    assert g.gpt_model is not None, "GPT_MODEL not defined in the environment variables"
+    if session.get('GPT_MODEL') is None:
+        session['GPT_MODEL'] = os.environ.get("GPT_MODEL", "gpt-3.5-turbo-1106")
+        # session['GPT_MODEL'] = os.environ.get("GPT_MODEL", "gpt-4-1106-preview")
+        
     
-    api_key = os.getenv("OPENAI_API_KEY")
-    assert api_key is not None, "OPENAI_API_KEY not defined in the environment variables"
+    if session.get('OPENAI_API_KEY') is None:
+        api_key = os.getenv("OPENAI_API_KEY")
+        session['OPENAI_API_KEY'] = api_key
+        assert api_key is not None, "OPENAI_API_KEY not defined in the environment variables"
+        
     
-    g.client = OpenAI(api_key=api_key)
-
+    g.client = OpenAI(api_key=session.get('OPENAI_API_KEY'))
     
     
     if session.get('ASSISTANT_ID') is None:
@@ -115,7 +119,7 @@ def before_request():
             name="Data search",
             description="You are to receive database table and column information and generate SQL queries to retrieve data that the user asks for",
             instructions="Answer user questions by generating SQL queries against the Unified Database. You should also consider whether the tool output would give the user the data they want. They may send you further messages to refine the query.",
-            model=g.gpt_model,
+            model=session.get('GPT_MODEL'),
             tools=tools
         )
         session['ASSISTANT_ID'] = assistant.id
@@ -157,6 +161,31 @@ def teardown_request(exception):
 @app.route("/", methods=['GET','POST'])
 def chat():
     return render_template('search.jinja2')
+
+
+
+@app.route("/update-model", methods=['POST'])
+def update_model():
+    try:
+        data = request.json
+        newmodel = data.get('model')
+        session['GPT_MODEL'] = newmodel
+        return jsonify(success=True, message=f'Model successfully updated to {newmodel}'), 200
+    except Exception as e:
+        print(traceback.format_exc())
+        return jsonify(success = False, message='Error updating model', devmessage = str(e)), 500
+
+
+@app.route("/update-api-key", methods=['POST'])
+def update_key():
+    try:
+        data = request.json
+        newkey = data.get('api_key')
+        session['OPENAI_API_KEY'] = newkey
+        return jsonify(success=True, message='API Key sucessfully updated', devmessage='API Key sucessfully updated'), 200
+    except Exception as e:
+        print(traceback.format_exc())
+        return jsonify(success = False, message='Error updating api key', devmessage = str(e)), 500
 
 
 @app.route('/submit', methods=['POST'])
@@ -214,7 +243,7 @@ def submit():
                 # Run the query
                 qryresult = pd.read_sql(sql.replace('%', '%%'), g.eng)
                 
-                session['FILE_DOWNLOAD_NAME'] = f"{secure_filename(sql)}.xlsx"
+                session['FILE_DOWNLOAD_NAME'] = f"{ str(secure_filename(sql))[:200] }.xlsx"
                 session['EXCEL_PATH'] = os.path.join(os.getcwd(), 'files', session.get('SESSION_DIR'), session.get('FILE_DOWNLOAD_NAME'))
                 with pd.ExcelWriter(session.get('EXCEL_PATH')) as writer:
                     qryresult.to_excel(writer, index = False)

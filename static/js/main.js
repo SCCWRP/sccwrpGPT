@@ -32,11 +32,16 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         if (response.records) {
 
-            var tableHTML = createTableFromJSON(response.records);
-            document.getElementById('records-box').innerHTML = tableHTML;
-            addPagination();
+            let recs = JSON.parse(response.records)
 
-            document.getElementById('records-container').style.display = 'block';
+            if (recs.length > 0) {
+                var tableHTML = createTableFromJSON(recs);
+                document.getElementById('records-box').innerHTML = tableHTML;
+                addPagination();   
+                document.getElementById('records-container').style.display = 'block';
+            } else {
+                alert('No records found')
+            }
 
         }
         if (response.message) {
@@ -95,10 +100,10 @@ document.addEventListener('DOMContentLoaded', function () {
         })
             .then(response => response.json())
             .then(data => {
-                hideModal();
-                displayResponse(data);
                 console.log("response:")
                 console.log(data);
+                hideModal();
+                displayResponse(data);
             })
             .catch((error) => {
                 hideModal();
@@ -187,5 +192,49 @@ document.addEventListener('DOMContentLoaded', function () {
     });
     
     
+
+    document.getElementById('api-key-form').addEventListener('submit', function(e){
+        e.preventDefault();
+        fetch('update-api-key', {
+            method: 'POST',
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify( { api_key: document.getElementById('api-key').value } )
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) {
+                // the server should return a 500 status code so i'm not sure if it would ever reach this point
+                console.error(data.devmessage)
+            }
+            alert(data.message)
+        })
+        .catch((error) => {
+            console.error(error);
+        });
+    })
+    
+    document.getElementById('model-select').addEventListener('change', function(e){
+        e.preventDefault();
+        fetch('update-model', {
+            method: 'POST',
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify( { model: document.getElementById('model-select').value } )
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) {
+                // the server should return a 500 status code so i'm not sure if it would ever reach this point
+                console.error(data.devmessage)
+            }
+            alert(data.message)
+        })
+        .catch((error) => {
+            console.error(error);
+        });
+    })
 
 });

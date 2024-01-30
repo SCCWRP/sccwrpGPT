@@ -14,6 +14,26 @@
         <p>Ask your question of our custom GPT that queries SCCWRP's unified database (chemistry, fish, inverts, and
             infauna) and get SQL and hopefully records. Check SQL for discrepancies if no records are returned.</p>
     </div>
+
+    <form id="api-key-form">
+        <label for="api-key">
+            <h4>Enter the API Key:</h4>
+        </label>
+        <input type="text" id="api-key" name="api-key" class="form-control" size="250">
+        <button class="btn btn-primary" type="submit">Update API Key</button>
+    </form>
+    <br>
+    <div id="model-select-container">
+        <label for="model">
+            <h4>Choose a model:</h4>
+        </label>
+        <select id="model-select" name="model" class="form-control">
+            <option value="gpt-3.5-turbo-1106">gpt-3.5-turbo-1106</option>
+            <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
+            <option value="gpt-4-1106-preview">gpt-4-1106-preview</option>
+        </select>
+    </div>
+    <br>
     <div id="example-questions">
         <h2>Directions:</h2>
         <p><b>For the earlier models like gpt-3.5-turbo treat the GPT like a 12 year old child. You might have to provide background and explanations to get better answers. Newer models are more powerful and may not need as much interaction.</b>
@@ -25,21 +45,7 @@
          </ol>
          </p>
     </div>
-    <!-- 
-    <div id="example-questions">
-        <h4>Example questions:</h4>
-        <ul>
-            <li>1. Can you return stations for the survey year 2018 that have Copper?</li>
-            <li>
-                2. What sites have high concentrations of Copper and flatfish? You will need to make a database call to
-                the chemistry and fish databases.
-                Also, flatfish is not a species but rather a number of species. You will need to figure out which
-                species are flatfish.
-            </li>
-        </ul>
-    </div>
-    // -->
-
+    
     <form id="dataForm">
         <label for="question">
             <h2>Ask your question:</h2>

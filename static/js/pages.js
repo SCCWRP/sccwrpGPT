@@ -97,8 +97,7 @@ export function addPagination() {
 }
 
 
-export function createTableFromJSON(jsonDataString) {
-    const jsonData = JSON.parse(jsonDataString)
+export function createTableFromJSON(jsonData) {
     if (jsonData.length === 0) {
         return '<p>No records found.</p>';
     }
