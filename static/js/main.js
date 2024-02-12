@@ -1,4 +1,5 @@
 import {createTableFromJSON, addPagination} from './pages.js'
+import {newThreadListener} from './listeners.js'
 
 document.addEventListener('DOMContentLoaded', function () {
 
@@ -91,7 +92,7 @@ document.addEventListener('DOMContentLoaded', function () {
         showModal();
         clearResponses();
 
-        fetch('/ai-search-tool/submit', {
+        fetch('submit', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -139,7 +140,7 @@ document.addEventListener('DOMContentLoaded', function () {
         chatHistoryModal.style.display = 'block';
         chatHistoryLoadingGif.style.display = 'block';
     
-        fetch('/ai-search-tool/chathist', {
+        fetch('chathist', {
             method: 'GET'
         })
         .then(response => response.json())
@@ -193,7 +194,7 @@ document.addEventListener('DOMContentLoaded', function () {
     
     
 
-    document.getElementById('api-key-form').addEventListener('submit', function(e){
+    document.getElementById('api-key-form')?.addEventListener('submit', function(e){
         e.preventDefault();
         fetch('update-api-key', {
             method: 'POST',
@@ -236,5 +237,7 @@ document.addEventListener('DOMContentLoaded', function () {
             console.error(error);
         });
     })
+    
+    document.getElementById('new-thread-button').addEventListener('click', newThreadListener)
 
 });

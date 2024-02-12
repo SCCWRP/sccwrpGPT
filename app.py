@@ -163,6 +163,18 @@ def chat():
     return render_template('search.jinja2')
 
 
+@app.route("/newthread", methods=['GET','POST'])
+def newthread():
+    try:
+        oldthread = session.pop('THREAD_ID')
+        g.client.beta.threads.delete(oldthread)
+        thread = g.client.beta.threads.create()
+        session['THREAD_ID'] = thread.id
+        return jsonify(success=True, message="New Thread created")
+    except Exception as e:
+        return jsonify(success=False, message="Error creating new thread", devmessage=f"Exception making new thread: {e}"), 500
+        
+
 
 @app.route("/update-model", methods=['POST'])
 def update_model():
@@ -194,6 +206,8 @@ def submit():
         # get info for the interaction with the chat gpt assistants api
         client = g.client
         THREAD_ID = session.get('THREAD_ID')
+        print("THREAD_ID")
+        print(THREAD_ID)
         ASSISTANT_ID = session.get('ASSISTANT_ID')
         
         # Get the user's question
@@ -243,7 +257,8 @@ def submit():
                 # Run the query
                 qryresult = pd.read_sql(sql.replace('%', '%%'), g.eng)
                 
-                session['FILE_DOWNLOAD_NAME'] = f"{ str(secure_filename(sql))[:200] }.xlsx"
+                #session['FILE_DOWNLOAD_NAME'] = f"{ str(secure_filename(sql))[:200] }.xlsx"
+                session['FILE_DOWNLOAD_NAME'] = f"{ str(time.time()) }.xlsx"
                 session['EXCEL_PATH'] = os.path.join(os.getcwd(), 'files', session.get('SESSION_DIR'), session.get('FILE_DOWNLOAD_NAME'))
                 with pd.ExcelWriter(session.get('EXCEL_PATH')) as writer:
                     qryresult.to_excel(writer, index = False)
