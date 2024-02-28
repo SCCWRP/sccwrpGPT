@@ -67,8 +67,10 @@ def before_request():
     g.gpt_model = os.getenv("GPT_MODEL")
     assert g.gpt_model is not None, "GPT_MODEL not defined in the environment variables"
     
-    api_key = os.getenv("OPENAI_API_KEY")
-    assert api_key is not None, "OPENAI_API_KEY not defined in the environment variables"
+    #api_key = os.getenv("OPENAI_API_KEY")
+    #assert api_key is not None, "OPENAI_API_KEY not defined in the environment variables"
+    api_key = os.getenv("OPENAI_API_KEY_PAUL")
+    assert api_key is not None, "OPENAI_API_KEY_PAUL not defined in the environment variables"
     
     g.client = OpenAI(api_key=api_key)
 
@@ -111,20 +113,33 @@ def before_request():
                 }
             }
         ]
+
+        prompt_role = """You are a database engineer whose job it is to help research technicians design SQL queries and to help both scientists and research technicians locate data. You currently work with the Bight Unified database but in the future you will have access to other databases. The Bight Unified database is a database of regional monitoring scientific surveys that were conduct in 1994, 1998, 2003, 2008, 2013, and 2018. There is also some data from previous reference surveys in 1977, 1985, and 1990. The Bight Unified encompasses sampling stations (or stationid) that cover the Southern California Bight. So as far south as Baja Mexico, as far north as Santa Barbara, and far west as outside of Catalina and the Channel Islands. Most sites are offshore, but there are also sites in the estuaries and even coastal connected rivers. \
+The purpose of the chemistry table is to document the analytical results for sediment and tissue chemistry. Each record represents a result from a specific analysis for a particular parameter at a single station or a single QA sample. This table will also contain all supporting QA sample results. \
+The benthic infauna table includes all data from benthic infaunal laboratory analysis. Macrobenthic (infaunal) communities will be analyzed for species composition and abundance. \ Infaunal data includes infaunal abundance and QA reanalysis. \
+The purpose of the Fish Abundance table is to document the number and condition of fish
+of each species within a size class from a successful trawl. \
+The invertebrate abundance table is used to document the numerical abundance of megabenthic invertebrates collected in trawls used for assemblage characterization. Each record represents the abundance and occurrence of anomalies in an individual species. \
+Each database tables has fields that are very important. For chemistry the important fields are analytenames, analyteclassess, and result. For fish abundance the important fields are speciesname, currentcommonname, and abundance. For invertebrate abundance the important fields are speciesname and result. For benthic infauna the important fields are taxon, phylum, _class, and abundance. All returned records from all tables should always include objectid, stationid, latitude, longitude, sampledate, stratum, region, and surveyyear unless the user asks for something different. You should always return the number of records returned and a SQL query. If the number of records returned is none or zero then you should encourage the user to widen the search or help with useful hints. There will be times that the user might request a search term that is not in the database, like flat fish, you may need to go outside of the database to search for what comprises a flat fish grouping. It might help the user if you ask them if they would like to search for a term outside of the database when the number of records returned is none or zero."""
+
         assistant = g.client.beta.assistants.create(
             name="Data search",
             description="You are to receive database table and column information and generate SQL queries to retrieve data that the user asks for",
-            instructions="Answer user questions by generating SQL queries against the Unified Database. You should also consider whether the tool output would give the user the data they want. They may send you further messages to refine the query.",
+            #instructions="Answer user questions by generating SQL queries against the Unified Database. You should also consider whether the tool output would give the user the data they want. They may send you further messages to refine the query.",
+            instructions=prompt_role,
             model=g.gpt_model,
             tools=tools
         )
         session['ASSISTANT_ID'] = assistant.id
-        
+
+        #thread = g.client.beta.threads.create()
+        #session['THREAD_ID'] = thread.id
+        #print("NEW session thread: %s" % thread.id)
 
     if session.get('THREAD_ID') is None:
         thread = g.client.beta.threads.create()
         session['THREAD_ID'] = thread.id
-        
+
     if session.get('SESSION_ID', None) is None:
         session['SESSION_ID'] = str(uuid.uuid4())
         
@@ -165,11 +180,21 @@ def submit():
         # get info for the interaction with the chat gpt assistants api
         client = g.client
         THREAD_ID = session.get('THREAD_ID')
+        print("THREAD_ID")
+        print(THREAD_ID)
+
+        # TESTING ONLY - CODE ABOVE IS PRODUCTION
+        #thread = g.client.beta.threads.create()
+        #print(thread)
+        #THREAD_ID = thread.id
+        #
+
         ASSISTANT_ID = session.get('ASSISTANT_ID')
         
         # Get the user's question
         data = request.json
         QUESTION = data["question"]
+        #MODEL = data["model"]
         TIMESTAMP = int(time.time())
         
         if not os.path.exists(session.get('CHAT_HISTORY_PATH')):
@@ -213,8 +238,9 @@ def submit():
             try:
                 # Run the query
                 qryresult = pd.read_sql(sql.replace('%', '%%'), g.eng)
-                
-                session['FILE_DOWNLOAD_NAME'] = f"{secure_filename(sql)}.xlsx"
+                TIMESTAMP = str(time.time())
+                session['FILE_DOWNLOAD_NAME'] = f"{secure_filename(TIMESTAMP)}.xlsx"
+                #session['FILE_DOWNLOAD_NAME'] = f"{secure_filename(sql)}.xlsx"
                 session['EXCEL_PATH'] = os.path.join(os.getcwd(), 'files', session.get('SESSION_DIR'), session.get('FILE_DOWNLOAD_NAME'))
                 with pd.ExcelWriter(session.get('EXCEL_PATH')) as writer:
                     qryresult.to_excel(writer, index = False)

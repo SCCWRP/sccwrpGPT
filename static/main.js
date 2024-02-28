@@ -82,6 +82,7 @@ document.addEventListener('DOMContentLoaded', function () {
         console.log('Form submitted')
         e.preventDefault();
 
+        var model = document.getElementById('model').value;
         var question = document.getElementById('question').value;
         showModal();
         clearResponses();
@@ -91,7 +92,7 @@ document.addEventListener('DOMContentLoaded', function () {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ question: question }),
+            body: JSON.stringify({ question: question, model: model }),
         })
             .then(response => response.json())
             .then(data => {
